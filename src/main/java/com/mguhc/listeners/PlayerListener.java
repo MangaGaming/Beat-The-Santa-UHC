@@ -20,16 +20,17 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import com.mguhc.BeatTheSantaUHC;
 
 public class PlayerListener implements Listener {
-    
+
     private final BeatTheSantaUHC beatTheSantaUHC;
     private final Location chestLocation = new Location(Bukkit.getWorld("world"), -41, 111, -14);
     private Player currentPlayerCrocheting;
     private boolean santaChestExists = false;
-	private boolean isChestLocked = false;
+    private boolean isChestLocked = false;
 
     public PlayerListener(BeatTheSantaUHC beatTheSantaUHC) {
         this.beatTheSantaUHC = beatTheSantaUHC;
@@ -41,27 +42,28 @@ public class PlayerListener implements Listener {
         Player player = event.getEntity();
         Player killer = event.getEntity().getKiller();
         HashMap<UUID, Integer> playerKills = beatTheSantaUHC.getplayerKills();
-        
+
         if (killer != null) {
             // Incrémente le nombre de kills du killer
             UUID killerId = killer.getUniqueId();
             playerKills.put(killerId, playerKills.getOrDefault(killerId, 0) + 1);
         }
 
-        if (player == beatTheSantaUHC.getSanta()) {
+        if (player.equals(beatTheSantaUHC.getSanta())) {
+            assert killer != null;
             Bukkit.broadcastMessage("[Beat The Santa] " + ChatColor.RED + "Le Santa est mort, tué par " + killer.getName());
-            
+
             // Placer un coffre aux coordonnées spécifiques
             chestLocation.getBlock().setType(Material.CHEST);
             santaChestExists = true;
-            
+
             // Ajouter des items dans le coffre (optionnel)
             Chest chest = (Chest) chestLocation.getBlock().getState();
             chest.getInventory().addItem(new ItemStack(Material.GOLD_INGOT, 5));
         } else {
             Bukkit.broadcastMessage("[Beat The Santa] " + ChatColor.RED + "Le joueur " + player.getName() + " a été tué par " + (killer != null ? killer.getName() : "quelqu'un d'autre"));
         }
-        
+
         // Vérifier si le joueur qui est mort était en train de crocheter le coffre
         if (player.equals(currentPlayerCrocheting)) {
             isChestLocked = false; // Annuler le crochetage
@@ -76,40 +78,57 @@ public class PlayerListener implements Listener {
         Block clickedBlock = event.getClickedBlock();
 
         // Vérifier si le joueur clique droit sur le coffre
-        if (santaChestExists && clickedBlock != null && clickedBlock.getLocation().equals(chestLocation) && clickedBlock.getType() == Material.CHEST) {
+        if (clickedBlock != null && santaChestExists && clickedBlock.getLocation().equals(chestLocation) && clickedBlock.getType() == Material.CHEST) {
             event.setCancelled(true); // Empêche l'ouverture du coffre
 
             // Vérifier si le coffre est déjà en cours de crochetage
-            if (!isChestLocked &&
-            	player.getGameMode().equals(GameMode.SURVIVAL)) {
+            if (!isChestLocked && player.getGameMode().equals(GameMode.SURVIVAL)) {
                 player.sendMessage(ChatColor.GOLD + "Le coffre se crochette, veuillez attendre 1 minute !");
                 isChestLocked = true; // Indique que le coffre est en cours de crochetage
+                currentPlayerCrocheting = player; // Enregistrer le joueur qui crochette
 
                 // Lancer une tâche pour gérer le crochetage du coffre
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        player.sendMessage(ChatColor.GREEN + "Le coffre a été crocheté ! Vous avez Gagné.");
-                        Bukkit.broadcastMessage("Victoire de " + player.getName());
-                        player.getWorld().getBlockAt(chestLocation).setType(Material.AIR);
-                        isChestLocked = false; // Le coffre peut maintenant être ouvert
-                        this.cancel(); // Annule la tâche
+                        if (currentPlayerCrocheting != null && currentPlayerCrocheting.equals(player)) {
+                            if (!isPlayerLookingAtChest(player)) {
+                                // Annuler le crochetage
+                                isChestLocked = false; // Réinitialiser l'état de crochetage
+                                currentPlayerCrocheting = null; // Réinitialiser le joueur en cours de crochetage
+                                player.sendMessage(ChatColor.RED + "Vous avez annulé le crochetage du coffre en bougeant !");
+                                Bukkit.broadcastMessage(ChatColor.RED + player.getName() + " a annulé le crochetage du coffre en bougeant !");
+                                this.cancel(); // Annule la tâche
+                            }
+                        }
                     }
-                }.runTaskLater(beatTheSantaUHC, 60 * 20); // 60 secondes en ticks (1 minute)
+                }.runTaskTimer(beatTheSantaUHC, 0, 20); // Vérifie chaque seconde
             } else {
-                player.sendMessage(ChatColor.RED + "Le coffre est encore en cours de crochetage, veuillez patienter.");
+                player.sendMessage(ChatColor.RED + "Le coffre est déjà en cours de crochetage ou vous n'êtes pas en mode survie.");
             }
         }
     }
-    
+
+    private boolean isPlayerLookingAtChest(Player player) {
+        // Vérifier si le joueur regarde le coffre
+        Location playerLocation = player.getLocation();
+        Location chestLoc = chestLocation.clone().add(0.5, 0.5, 0.5); // Centrer le coffre
+
+        // Calculer la direction du joueur
+        Vector direction = playerLocation.getDirection().normalize();
+        Vector toChest = chestLoc.toVector().subtract(playerLocation.toVector()).normalize();
+
+        // Vérifier si la direction du joueur est proche de la direction vers le coffre
+        return direction.dot(toChest) > 0.9; // Ajuster le seuil si nécessaire
+    }
+
     @EventHandler
-    private void OnJoin(PlayerJoinEvent event) {
-    	Player player = event.getPlayer();
-    	if(BeatTheSantaUHC.getInstance().getPhase().equals("Playing")) {
-    		player.setGameMode(GameMode.SPECTATOR);
-    	}
-    	else if(BeatTheSantaUHC.getInstance().getPhase().equals("Waiting")) {
-    		player.setMaxHealth(20);
+    private void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (BeatTheSantaUHC.getInstance().getPhase().equals("Playing")) {
+            player.setGameMode(GameMode.SPECTATOR);
+        } else if (BeatTheSantaUHC.getInstance().getPhase().equals("Waiting")) {
+            player.setMaxHealth(20);
             player.setHealth(20);
             player.setSaturation(20);
             player.getInventory().clear();
@@ -119,14 +138,14 @@ public class PlayerListener implements Listener {
             player.setGameMode(GameMode.SURVIVAL);
             player.getInventory().setArmorContents(null);
             player.getInventory().clear();
-    	}
+        }
     }
-    
+
     @EventHandler
-    private void OnRespawn(PlayerRespawnEvent event) {
-    	Player player = event.getPlayer();
-    	if(beatTheSantaUHC.getPhase().equals("Playing")) {
-    		player.setGameMode(GameMode.SPECTATOR);
-    	}
+    private void onRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        if (beatTheSantaUHC.getPhase().equals("Playing")) {
+            player.setGameMode(GameMode.SPECTATOR);
+        }
     }
 }
