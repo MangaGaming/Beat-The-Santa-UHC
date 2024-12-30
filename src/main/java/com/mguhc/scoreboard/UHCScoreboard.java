@@ -109,7 +109,7 @@ public class UHCScoreboard {
                 scores[7].setScore(7); // Mettre à jour le score des Lutins
 
                 scoreboard.resetScores(scores[8].getEntry());
-                scores[ 8] = objective.getScore(ChatColor.YELLOW + "Père Noël : " + ChatColor.RED + getSantaString());
+                scores[8] = objective.getScore(ChatColor.YELLOW + "Père Noël : " + ChatColor.RED + getSantaString());
                 scores[8].setScore(6); // Mettre à jour le score du Santa
                 
                 scoreboard.resetScores(scores[9].getEntry());

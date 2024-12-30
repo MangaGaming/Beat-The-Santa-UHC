@@ -155,10 +155,15 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
             // Attribuer les effets et le nom dans le tab aux Lutins
             for (Player player : players) {
                 if (!player.equals(santa)) {
-                	player.setHealth(player.getMaxHealth());
-                    giveElfAbilities(player);
-                    player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
                     teleportPlayerToRandomLocation(player);
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            player.setHealth(player.getMaxHealth());
+                            giveElfAbilities(player);
+                            player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
+                        }
+                    }.runTaskLater(this, 20*20);
                 }
             }
             // TP le Père Noël à (0, 100, 0)
@@ -175,7 +180,8 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         Random random = new Random();
         int x = random.nextInt(201) + 400; // Coordonnée X aléatoire entre 400 et 600
         int z = random.nextInt(201) + 400; // Coordonnée Z aléatoire entre 400 et 600
-        player.teleport(new Location(player.getWorld(), x, player.getWorld().getHighestBlockYAt(x, z), z));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 255, 10*20));
+        player.teleport(new Location(player.getWorld(), x, 100, z));
     }
 
     private void giveSantaAbilities(Player santa) {

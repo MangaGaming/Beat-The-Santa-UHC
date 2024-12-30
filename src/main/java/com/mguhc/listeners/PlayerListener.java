@@ -3,11 +3,7 @@ package com.mguhc.listeners;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
 import org.bukkit.entity.Player;
@@ -20,7 +16,6 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
 import com.mguhc.BeatTheSantaUHC;
 
@@ -40,6 +35,9 @@ public class PlayerListener implements Listener {
     private void onDeath(PlayerDeathEvent event) {
         event.setDeathMessage(null); // Désactive le message de mort
         Player player = event.getEntity();
+        for(Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            onlinePlayer.playSound(onlinePlayer.getLocation(), Sound.WITHER_DEATH, 1.0F, 1.0F);
+        }
         Player killer = event.getEntity().getKiller();
         HashMap<UUID, Integer> playerKills = beatTheSantaUHC.getplayerKills();
 
@@ -86,40 +84,43 @@ public class PlayerListener implements Listener {
                 player.sendMessage(ChatColor.GOLD + "Le coffre se crochette, veuillez attendre 1 minute !");
                 isChestLocked = true; // Indique que le coffre est en cours de crochetage
                 currentPlayerCrocheting = player; // Enregistrer le joueur qui crochette
+                final int[] timer = {0};
 
                 // Lancer une tâche pour gérer le crochetage du coffre
                 new BukkitRunnable() {
                     @Override
                     public void run() {
-                        if (currentPlayerCrocheting != null && currentPlayerCrocheting.equals(player)) {
-                            if (!isPlayerLookingAtChest(player)) {
-                                // Annuler le crochetage
-                                isChestLocked = false; // Réinitialiser l'état de crochetage
-                                currentPlayerCrocheting = null; // Réinitialiser le joueur en cours de crochetage
-                                player.sendMessage(ChatColor.RED + "Vous avez annulé le crochetage du coffre en bougeant !");
-                                Bukkit.broadcastMessage(ChatColor.RED + player.getName() + " a annulé le crochetage du coffre en bougeant !");
-                                this.cancel(); // Annule la tâche
+
+                        // Vérifier si le joueur est toujours dans la zone définie
+                        if (isPlayerInCrochetageZone(player)) {
+                            if(timer[0] == 10){
+                                this.cancel();
+                                Bukkit.broadcastMessage(ChatColor.GREEN + player.getName() + " a gagné");
+                                player.getWorld().getBlockAt(chestLocation).setType(Material.AIR);
                             }
+                        } else {
+                            // Annuler le crochetage
+                            isChestLocked = false; // Réinitialiser l'état de crochetage
+                            currentPlayerCrocheting = null; // Réinitialiser le joueur en cours de crochetage
+                            player.sendMessage(ChatColor.RED + "Vous avez annulé le crochetage du coffre en sortant de la zone !");
+                            Bukkit.broadcastMessage(ChatColor.RED + player.getName() + " a annulé le crochetage du coffre en sortant de la zone ! Il est resté" + timer[0] + "secondes");
+                            this.cancel(); // Annule la tâche
                         }
+                        timer[0]++;
                     }
                 }.runTaskTimer(beatTheSantaUHC, 0, 20); // Vérifie chaque seconde
-            } else {
-                player.sendMessage(ChatColor.RED + "Le coffre est déjà en cours de crochetage ou vous n'êtes pas en mode survie.");
             }
         }
     }
 
-    private boolean isPlayerLookingAtChest(Player player) {
-        // Vérifier si le joueur regarde le coffre
-        Location playerLocation = player.getLocation();
-        Location chestLoc = chestLocation.clone().add(0.5, 0.5, 0.5); // Centrer le coffre
+    // Méthode pour vérifier si le joueur est dans la zone de crochetage
+    private boolean isPlayerInCrochetageZone(Player player) {
+        Location loc = player.getLocation();
+        double x = loc.getX();
+        double z = loc.getZ();
 
-        // Calculer la direction du joueur
-        Vector direction = playerLocation.getDirection().normalize();
-        Vector toChest = chestLoc.toVector().subtract(playerLocation.toVector()).normalize();
-
-        // Vérifier si la direction du joueur est proche de la direction vers le coffre
-        return direction.dot(toChest) > 0.9; // Ajuster le seuil si nécessaire
+        // Vérifier si le joueur est dans la zone carrée définie par les coins
+        return (x >= -42 && x <= -40) && (z >= -15 && z <= -13);
     }
 
     @EventHandler
