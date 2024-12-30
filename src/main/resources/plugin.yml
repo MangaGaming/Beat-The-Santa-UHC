@@ -1,0 +1,10 @@
+name: BeatTheSantaUHC
+version: 1.0
+author: MangaGaming
+main: com.mguhc.BeatTheSantaUHC
+commands:
+  start:
+    description: Lance la partie si suffisamment de joueurs sont connectés.
+    usage: /start
+  meetup:
+  
