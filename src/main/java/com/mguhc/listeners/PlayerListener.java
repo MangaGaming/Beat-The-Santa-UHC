@@ -120,7 +120,7 @@ public class PlayerListener implements Listener {
         double z = loc.getZ();
 
         // Vérifier si le joueur est dans la zone carrée définie par les coins
-        return (x >= -42 && x <= -40) && (z >= -15 && z <= -13);
+        return (x >= -43 && x <= -39) && (z >= -15 && z <= -13);
     }
 
     @EventHandler
