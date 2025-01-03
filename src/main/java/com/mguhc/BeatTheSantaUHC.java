@@ -103,36 +103,32 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         // ScoreBoard
         UHCScoreboard uhcScoreboard = new UHCScoreboard(this, player);
         uhcScoreboard.createScoreboard(player);
-        
-        // Retirer tous les effets de potion
-        for (PotionEffect effect : player.getActivePotionEffects()) {
-            player.removePotionEffect(effect.getType());
+
+        if(player.getName().equals("Sacha_legrandgil")) {
+            player.setPlayerListName(ChatColor.RED + player.getName() + " Père Noël");
         }
 
-        // Vider l'inventaire du joueur
-        player.getInventory().clear();
+        if(!currentPhase.equals("Playing")) {
+            // Retirer tous les effets de potion
+            for (PotionEffect effect : player.getActivePotionEffects()) {
+                player.removePotionEffect(effect.getType());
+            }
 
-        // Rétablir la santé maximale et la saturation
-        player.setMaxHealth(20);
-        player.setHealth(player.getMaxHealth());
-        player.setFoodLevel(20); // Saturation maximale
-        player.setSaturation(20f); // Saturation max
+            // Vider l'inventaire du joueur
+            player.getInventory().clear();
+
+            // Rétablir la santé maximale et la saturation
+            player.setMaxHealth(20);
+            player.setHealth(player.getMaxHealth());
+            player.setFoodLevel(20); // Saturation maximale
+            player.setSaturation(20f); // Saturation max
+        }
     }
 
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event) {
         String[] args = event.getMessage().split(" ");
         if (args[0].equalsIgnoreCase("/start")) {
-        	currentPhase = "Playing";
-            event.setCancelled(true); // Annule la commande par défaut
-            new DayCycleScenario(this);
-            
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    timepassed++;
-                }
-            }.runTaskTimer(this, 0L, 20L); // 20L = 1 seconde
 
             // Vérifier si "Sacha_legrandil" est présent dans les joueurs
             for (Player player : players) {
@@ -148,6 +144,20 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
                 return;
             }
 
+        	currentPhase = "Playing";
+            event.setCancelled(true); // Annule la commande par défaut
+            Bukkit.getWorld("world").setTime(0);
+            new DayCycleScenario(this);
+            dayNumber = 0;
+            
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    timepassed++;
+                }
+            }.runTaskTimer(this, 0L, 20L); // 20L = 1 seconde
+
+
             // Attribuer les capacités au Père Noël
             giveSantaAbilities(santa);
             santa.setPlayerListName(ChatColor.RED + santa.getName() + " Père Noël");
@@ -159,9 +169,13 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
                     new BukkitRunnable() {
                         @Override
                         public void run() {
-                            player.setHealth(player.getMaxHealth());
-                            giveElfAbilities(player);
-                            player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
+                            if(player.getName().equals("MangaGaming")) {
+                                giveMangaAbilities(player);
+                            }
+                            else {
+                                giveElfAbilities(player);
+                                player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
+                            }
                         }
                     }.runTaskLater(this, 20*20);
                 }
@@ -225,6 +239,17 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
             giveMeetupGear(elf);
         } else {
             giveElfGear(elf);
+        }
+    }
+
+
+    private void giveMangaAbilities(Player player) {
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, Integer.MAX_VALUE, 0));
+
+        if (meetupEnabled) {
+            giveMeetupGear(player);
+        } else {
+            giveElfGear(player);
         }
     }
 
@@ -306,7 +331,13 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         elf.getInventory().addItem(new ItemStack(Material.IRON_CHESTPLATE)); // Plastron en fer
         elf.getInventory().addItem(new ItemStack(Material.IRON_LEGGINGS)); // Pantalon en fer
         elf.getInventory().addItem(new ItemStack(Material.IRON_BOOTS)); // Bottes en fer
-        elf.getInventory().addItem(new ItemStack(Material.DIAMOND_PICKAXE, 1));
+        // Pioche en diams Efficacité 3
+        ItemStack diamondPickaxe = new ItemStack(Material.DIAMOND_PICKAXE);
+        ItemMeta pickaxeMeta = diamondPickaxe.getItemMeta();
+        pickaxeMeta.addEnchant(Enchantment.DIG_SPEED, 3, true); // Efficacité 3
+        diamondPickaxe.setItemMeta(pickaxeMeta);
+        elf.getInventory().addItem(diamondPickaxe);
+
         elf.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 64)); // 64 steaks
         elf.getInventory().addItem(new ItemStack(Material.BOOK, 3)); // 3 livres
         elf.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 10)); // 10 pommes rouges

@@ -22,8 +22,16 @@ public class CadeauScenario implements Listener {
 		@EventHandler
 		private void OnCraft(CraftItemEvent event) {
 			ItemStack item = event.getCurrentItem();
-			if(item.getType() == Material.GOLD_BLOCK || item.getType() == Material.DIAMOND_BLOCK || item.getType() == Material.EMERALD_BLOCK) {
-					event.setCancelled(true);
+			if(item.getType() == Material.GOLD_BLOCK ||
+				item.getType() == Material.DIAMOND_BLOCK ||
+				item.getType() == Material.EMERALD_BLOCK ||
+				item.getType() == Material.GOLD_INGOT ||
+				item.getType() == Material.DIAMOND ||
+				item.getType() == Material.EMERALD) {
+				event.setCancelled(true);
+			}
+			if(item.getType() == Material.GOLDEN_APPLE && item.getDurability() == 1) {
+				event.setCancelled(true);
 			}
 		}
 	

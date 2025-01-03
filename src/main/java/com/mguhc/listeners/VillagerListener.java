@@ -28,7 +28,7 @@ public class VillagerListener implements Listener {
 	private void spawnCustomVillager() {
 	    World world = Bukkit.getWorld("world");
 	    if (world != null) {
-	        Location location = new Location(world, 51, 71, 157);
+	        Location location = new Location(world, 92, 68, 128);
 	        Villager villager = (Villager) world.spawnEntity(location, EntityType.VILLAGER);
 	        villager.setCustomName(ChatColor.GRAY + "Père Fouetard");
 	        villager.setCustomNameVisible(true);

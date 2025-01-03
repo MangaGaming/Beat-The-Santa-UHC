@@ -149,7 +149,7 @@ public class UHCScoreboard {
 	}
 
 	private String getActualDayString() {
-		return String.valueOf(plugin.getDayNumber());
+		return String.valueOf(plugin.getDayNumber() / 3);
 	}
 
 	// Méthode pour obtenir la taille de la border en tant que chaîne

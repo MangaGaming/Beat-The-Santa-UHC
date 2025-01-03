@@ -11,7 +11,7 @@ import com.mguhc.BeatTheSantaUHC;
 public class DayCycleScenario implements Listener {
 
     private boolean isDay = true;
-	private BeatTheSantaUHC beatthesantauhc;
+    private BeatTheSantaUHC beatthesantauhc;
 
     public DayCycleScenario(BeatTheSantaUHC beatthesantauhc) {
         this.beatthesantauhc = beatthesantauhc;
@@ -23,18 +23,18 @@ public class DayCycleScenario implements Listener {
             @Override
             public void run() {
                 for (World world : Bukkit.getWorlds()) {
-                    // Alterne entre le jour et la nuit toutes les 5 minutes
                     if (isDay) {
                         world.setTime(0); // Définit l'heure au début du jour
                         Bukkit.broadcastMessage(ChatColor.YELLOW + "Le jour commence !");
+                        // Incrémente le nombre de jours uniquement lorsque le jour commence
                         beatthesantauhc.setDayNumber(beatthesantauhc.getDayNumber() + 1);
                     } else {
                         world.setTime(13000); // Définit l'heure au début de la nuit
                         Bukkit.broadcastMessage(ChatColor.BLUE + "La nuit tombe !");
                     }
-                    isDay = !isDay; // Alterne entre le jour et la nuit pour le prochain cycle
                 }
+                isDay = !isDay; // Alterne entre le jour et la nuit pour le prochain cycle
             }
-        }.runTaskTimer(beatthesantauhc, 0, 36000);
+        }.runTaskTimer(beatthesantauhc, 0, 36000); // Exécute toutes les 30 minutes
     }
 }

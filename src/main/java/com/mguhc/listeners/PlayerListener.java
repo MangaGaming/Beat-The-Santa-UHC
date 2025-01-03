@@ -22,7 +22,7 @@ import com.mguhc.BeatTheSantaUHC;
 public class PlayerListener implements Listener {
 
     private final BeatTheSantaUHC beatTheSantaUHC;
-    private final Location chestLocation = new Location(Bukkit.getWorld("world"), -41, 111, -14);
+    private final Location chestLocation = new Location(Bukkit.getWorld("world"), 0, 108, -43);
     private Player currentPlayerCrocheting;
     private boolean santaChestExists = false;
     private boolean isChestLocked = false;
@@ -93,7 +93,7 @@ public class PlayerListener implements Listener {
 
                         // Vérifier si le joueur est toujours dans la zone définie
                         if (isPlayerInCrochetageZone(player)) {
-                            if(timer[0] == 10){
+                            if(timer[0] == 60) {
                                 this.cancel();
                                 Bukkit.broadcastMessage(ChatColor.GREEN + player.getName() + " a gagné");
                                 player.getWorld().getBlockAt(chestLocation).setType(Material.AIR);
@@ -108,7 +108,7 @@ public class PlayerListener implements Listener {
                         }
                         timer[0]++;
                     }
-                }.runTaskTimer(beatTheSantaUHC, 0, 20); // Vérifie chaque seconde
+                }.runTaskTimer(beatTheSantaUHC, 0, 5); // Vérifie chaque seconde
             }
         }
     }
@@ -120,15 +120,13 @@ public class PlayerListener implements Listener {
         double z = loc.getZ();
 
         // Vérifier si le joueur est dans la zone carrée définie par les coins
-        return (x >= -43 && x <= -39) && (z >= -15 && z <= -13);
+        return (x >= -1 && x <= 1) && (z >= -44 && z <= -42);
     }
 
     @EventHandler
     private void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (BeatTheSantaUHC.getInstance().getPhase().equals("Playing")) {
-            player.setGameMode(GameMode.SPECTATOR);
-        } else if (BeatTheSantaUHC.getInstance().getPhase().equals("Waiting")) {
+        if (BeatTheSantaUHC.getInstance().getPhase().equals("Waiting")) {
             player.setMaxHealth(20);
             player.setHealth(20);
             player.setSaturation(20);
