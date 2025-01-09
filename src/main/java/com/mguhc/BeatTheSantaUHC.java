@@ -1,10 +1,6 @@
 package com.mguhc;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -41,7 +37,6 @@ import com.mguhc.scoreboard.UHCScoreboard;
 public class BeatTheSantaUHC extends JavaPlugin implements Listener {
     
     private static BeatTheSantaUHC instance;
-    private List<Player> players = new ArrayList<>();
     private int timepassed = 0;
     private int dayNumber = 0;
     private Player santa;
@@ -95,7 +90,6 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        players.add(player);
         
         player.sendMessage(ChatColor.GREEN + "Vous avez rejoint Beat the Santa UHC !");
         player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
@@ -103,10 +97,6 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         // ScoreBoard
         UHCScoreboard uhcScoreboard = new UHCScoreboard(this, player);
         uhcScoreboard.createScoreboard(player);
-
-        if(player.getName().equals("Sacha_legrandgil")) {
-            player.setPlayerListName(ChatColor.RED + player.getName() + " Père Noël");
-        }
 
         if(!currentPhase.equals("Playing")) {
             // Retirer tous les effets de potion
@@ -129,27 +119,33 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
     public void onCommand(PlayerCommandPreprocessEvent event) {
         String[] args = event.getMessage().split(" ");
         if (args[0].equalsIgnoreCase("/start")) {
+            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
 
-            // Vérifier si "Sacha_legrandil" est présent dans les joueurs
-            for (Player player : players) {
-                if (player.getName().equals("Sacha_legrandgil")) {
-                    santa = player;
-                    break;
-                }
+            // Convertir la collection en liste
+            List<Player> playerList = new ArrayList<>(players);
+
+            // Vérifier si la liste des joueurs n'est pas vide
+            if (!playerList.isEmpty()) {
+                Random random = new Random();
+                int randomIndex = random.nextInt(playerList.size()); // Choisit un index aléatoire
+                santa = playerList.get(randomIndex); // Attribue le rôle de Santa à un joueur aléatoire
+            } else {
+                // Gérer le cas où il n'y a pas de joueurs
+                event.getPlayer().sendMessage(ChatColor.RED + "Aucun joueur disponible pour devenir Santa !");
+                return; // Sortir de la méthode si aucun joueur n'est disponible
             }
 
             // Si "Sacha_legrandil" n'est pas présent, afficher un message d'erreur
             if (santa == null) {
-                event.getPlayer().sendMessage(ChatColor.RED + "Le joueur 'Sacha_legrandgil' doit être présent pour commencer !");
                 return;
             }
 
-        	currentPhase = "Playing";
+            currentPhase = "Playing";
             event.setCancelled(true); // Annule la commande par défaut
             Bukkit.getWorld("world").setTime(0);
             new DayCycleScenario(this);
             dayNumber = 0;
-            
+
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -157,32 +153,26 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
                 }
             }.runTaskTimer(this, 0L, 20L); // 20L = 1 seconde
 
-
             // Attribuer les capacités au Père Noël
             giveSantaAbilities(santa);
             santa.setPlayerListName(ChatColor.RED + santa.getName() + " Père Noël");
 
             // Attribuer les effets et le nom dans le tab aux Lutins
-            for (Player player : players) {
+            for (Player player : playerList) {
                 if (!player.equals(santa)) {
                     teleportPlayerToRandomLocation(player);
                     new BukkitRunnable() {
                         @Override
                         public void run() {
-                            if(player.getName().equals("MangaGaming")) {
-                                giveMangaAbilities(player);
-                            }
-                            else {
-                                giveElfAbilities(player);
-                                player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
-                            }
+                            giveElfAbilities(player);
+                            player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
                         }
-                    }.runTaskLater(this, 20*20);
+                    }.runTaskLater(this, 20 * 20);
                 }
             }
             // TP le Père Noël à (0, 100, 0)
             santa.teleport(new Location(santa.getWorld(), -41, 83, 71));
-            
+
         } else if (args[0].equalsIgnoreCase("/meetup")) {
             meetupEnabled = !meetupEnabled; // Active ou désactive le mode meetup
             String status = meetupEnabled ? "activé" : "désactivé";
@@ -239,17 +229,6 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
             giveMeetupGear(elf);
         } else {
             giveElfGear(elf);
-        }
-    }
-
-
-    private void giveMangaAbilities(Player player) {
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, Integer.MAX_VALUE, 0));
-
-        if (meetupEnabled) {
-            giveMeetupGear(player);
-        } else {
-            giveElfGear(player);
         }
     }
 
@@ -397,5 +376,9 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
 
     public static BeatTheSantaUHC getInstance() {
         return instance;
+    }
+
+    public boolean isMeetupEnabled() {
+        return meetupEnabled;
     }
 }

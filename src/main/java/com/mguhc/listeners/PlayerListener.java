@@ -48,8 +48,9 @@ public class PlayerListener implements Listener {
         }
 
         if (player.equals(beatTheSantaUHC.getSanta())) {
-            assert killer != null;
-            Bukkit.broadcastMessage("[Beat The Santa] " + ChatColor.RED + "Le Santa est mort, tué par " + killer.getName());
+            if (killer != null) {
+                Bukkit.broadcastMessage("[Beat The Santa] " + ChatColor.RED + "Le Santa est mort, tué par " + killer.getName());
+            }
 
             // Placer un coffre aux coordonnées spécifiques
             chestLocation.getBlock().setType(Material.CHEST);

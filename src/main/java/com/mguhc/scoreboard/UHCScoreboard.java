@@ -124,14 +124,22 @@ public class UHCScoreboard {
 	}
 
     private String getLutinString() {
-    	return String.valueOf(Bukkit.getOnlinePlayers().size() - 1);
+        if (plugin.getSanta() == null) {
+            return String.valueOf(Bukkit.getOnlinePlayers().size());
+        }
+        else if (plugin.getSanta().isDead()) {
+            return String.valueOf(Bukkit.getOnlinePlayers().size());
+        }
+        else {
+            return String.valueOf(Bukkit.getOnlinePlayers().size() - 1);
+        }
 	}
 
 	private String getSantaString() {
 		if(plugin.getSanta() == null) {
 			return "Pas de père noël";
 		}
-    	if(!plugin.getSanta().isOnline()) {
+    	if(!plugin.getSanta().isDead()) {
     		return "0";
     	}
     	else {
@@ -140,12 +148,17 @@ public class UHCScoreboard {
 	}
 
 	private String getPVPString() {
-		if(plugin.getTimePassed() >= 30 * 60) {
-			return "Activé";
-		}
-		else {
-			return "Désactivé";
-		}
+        if (plugin.isMeetupEnabled()) {
+            return "Activé";
+        }
+        else {
+            if(plugin.getTimePassed() >= 30 * 60) {
+                return "Activé";
+            }
+            else {
+                return "Désactivé";
+            }
+        }
 	}
 
 	private String getActualDayString() {
