@@ -24,8 +24,8 @@ public class NoStoneVariantScenario implements Listener {
         byte data = event.getBlock().getData(); // Récupère la data value du bloc
 
         if (blockType == Material.STONE && (data == 1 || data == 3 || data == 5)) {
-            // Supprimer les drops normaux
-            event.getBlock().getDrops().clear();
+            event.setCancelled(true);
+            event.getBlock().setType(Material.AIR);
             // Ajouter la cobblestone
             event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation(), new ItemStack(Material.COBBLESTONE));
         }

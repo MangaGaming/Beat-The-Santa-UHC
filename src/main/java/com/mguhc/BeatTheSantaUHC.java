@@ -29,7 +29,6 @@ import com.mguhc.listeners.VillagerListener;
 import com.mguhc.listeners.scenario.CadeauScenario;
 import com.mguhc.listeners.scenario.CutCleanScenario;
 import com.mguhc.listeners.scenario.DayCycleScenario;
-import com.mguhc.listeners.scenario.DoubleOreScenario;
 import com.mguhc.listeners.scenario.HastyBoysScenario;
 import com.mguhc.listeners.scenario.NoStoneVariantScenario;
 import com.mguhc.scoreboard.UHCScoreboard;
@@ -43,6 +42,7 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
     public HashMap<UUID, Integer> playerKills = new HashMap<>();
     private boolean meetupEnabled = false; // Variable pour suivre si le mode meetup est activé
     private String currentPhase = "Waiting";
+    private Player selectedSanta;
 
     @Override
     public void onEnable() {
@@ -62,7 +62,6 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(new CutCleanScenario(), this);
         getServer().getPluginManager().registerEvents(new HastyBoysScenario(), this);
         getServer().getPluginManager().registerEvents(new NoStoneVariantScenario(this), this);
-        getServer().getPluginManager().registerEvents(new DoubleOreScenario(), this);
         getServer().getPluginManager().registerEvents(new CadeauScenario(this), this);
     }
 
@@ -127,17 +126,17 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
             // Vérifier si la liste des joueurs n'est pas vide
             if (!playerList.isEmpty()) {
                 Random random = new Random();
-                int randomIndex = random.nextInt(playerList.size()); // Choisit un index aléatoire
-                santa = playerList.get(randomIndex); // Attribue le rôle de Santa à un joueur aléatoire
+                int randomIndex = random.nextInt(playerList.size() + 1); // Choisit un index aléatoire
+                if (selectedSanta == null) {
+                    santa = playerList.get(randomIndex); // Attribue le rôle de Santa à un joueur aléatoire
+                }
+                else {
+                    santa = selectedSanta;
+                }
             } else {
                 // Gérer le cas où il n'y a pas de joueurs
                 event.getPlayer().sendMessage(ChatColor.RED + "Aucun joueur disponible pour devenir Santa !");
                 return; // Sortir de la méthode si aucun joueur n'est disponible
-            }
-
-            // Si "Sacha_legrandil" n'est pas présent, afficher un message d'erreur
-            if (santa == null) {
-                return;
             }
 
             currentPhase = "Playing";
@@ -177,6 +176,14 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
             meetupEnabled = !meetupEnabled; // Active ou désactive le mode meetup
             String status = meetupEnabled ? "activé" : "désactivé";
             event.getPlayer().sendMessage(ChatColor.YELLOW + "Le mode meetup est maintenant " + status + " !");
+        }
+
+        else if (args.length == 2 && args[0].equals("/setSanta")) {
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target != null) {
+                selectedSanta = target;
+                event.getPlayer().sendMessage(ChatColor.GREEN + "Le Père Noël a été sélectionné !");
+            }
         }
     }
 
@@ -283,6 +290,15 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         pickaxeMeta.addEnchant(Enchantment.DIG_SPEED, 3, true); // Efficacité 3
         diamondPickaxe.setItemMeta(pickaxeMeta);
         elf.getInventory().addItem(diamondPickaxe);
+
+        elf.getInventory().addItem(new ItemStack(Material.WOOD, 1028));
+
+        ItemStack bow = new ItemStack(Material.BOW);
+        ItemMeta bowMeta = bow.getItemMeta();
+        bowMeta.addEnchant(Enchantment.ARROW_DAMAGE, 3, true);
+        bow.setItemMeta(bowMeta);
+        elf.getInventory().addItem(bow);
+        elf.getInventory().addItem(new ItemStack(Material.ARROW, 64));
     }
 
     private void giveSantaGear(Player santa) {

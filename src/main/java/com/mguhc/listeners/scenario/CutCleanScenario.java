@@ -18,13 +18,29 @@ public class CutCleanScenario implements Listener {
         // Vérifie si le joueur utilise une pioche
         if (event.getPlayer().getInventory().getItemInHand().getType().toString().endsWith("_PICKAXE")) {
         	
-        	int xp = 1; // Quantité d'XP similaire à celle de la redstone
+        	int xp = 2; // Quantité d'XP similaire à celle de la redstone
             
             if (blockType == Material.IRON_ORE) {
                 // Annule l'événement original
                 event.setCancelled(true);
                 event.getBlock().setType(Material.AIR);
                 event.getBlock().getWorld().dropItemNaturally(block.getLocation(), new ItemStack(Material.IRON_INGOT, 1));
+                block.getWorld().spawn(block.getLocation(), org.bukkit.entity.ExperienceOrb.class).setExperience(xp);
+            }
+
+            if (blockType == Material.GOLD_ORE) {
+                // Annule l'événement original
+                event.setCancelled(true);
+                event.getBlock().setType(Material.AIR);
+                event.getBlock().getWorld().dropItemNaturally(block.getLocation(), new ItemStack(Material.GOLD_INGOT, 1));
+                block.getWorld().spawn(block.getLocation(), org.bukkit.entity.ExperienceOrb.class).setExperience(xp);
+            }
+
+            if (blockType == Material.DIAMOND) {
+                // Annule l'événement original
+                event.setCancelled(true);
+                event.getBlock().setType(Material.AIR);
+                event.getBlock().getWorld().dropItemNaturally(block.getLocation(), new ItemStack(Material.DIAMOND, 1));
                 block.getWorld().spawn(block.getLocation(), org.bukkit.entity.ExperienceOrb.class).setExperience(xp);
             }
         }
