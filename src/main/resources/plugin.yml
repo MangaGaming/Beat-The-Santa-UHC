@@ -7,4 +7,5 @@ commands:
     description: Lance la partie si suffisamment de joueurs sont connectés.
     usage: /start
   meetup:
+  setSanta:
   
