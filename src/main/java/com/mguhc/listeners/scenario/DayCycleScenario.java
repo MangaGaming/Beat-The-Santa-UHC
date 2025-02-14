@@ -35,6 +35,6 @@ public class DayCycleScenario implements Listener {
                 }
                 isDay = !isDay; // Alterne entre le jour et la nuit pour le prochain cycle
             }
-        }.runTaskTimer(beatthesantauhc, 0, 36000); // Exécute toutes les 30 minutes
+        }.runTaskTimer(beatthesantauhc, 0, 1800*20); // Exécute toutes les 30 minutes
     }
 }
