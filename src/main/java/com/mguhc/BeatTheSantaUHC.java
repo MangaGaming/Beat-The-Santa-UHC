@@ -2,21 +2,11 @@ package com.mguhc;
 
 import java.util.*;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Difficulty;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import com.mguhc.listeners.ConfigListener;
+import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityRegainHealthEvent;
-import org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerItemConsumeEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,14 +14,13 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import com.mguhc.listeners.PlayerListener;
+import com.mguhc.listeners.CoffreListener;
 import com.mguhc.listeners.VillagerListener;
 import com.mguhc.listeners.scenario.CadeauScenario;
 import com.mguhc.listeners.scenario.CutCleanScenario;
 import com.mguhc.listeners.scenario.DayCycleScenario;
 import com.mguhc.listeners.scenario.HastyBoysScenario;
 import com.mguhc.listeners.scenario.NoStoneVariantScenario;
-import com.mguhc.scoreboard.UHCScoreboard;
 
 public class BeatTheSantaUHC extends JavaPlugin implements Listener {
     
@@ -44,7 +33,6 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
     private String currentPhase = "Waiting";
     private Player selectedSanta;
 
-    @Override
     public void onEnable() {
         instance = this;
         for (World world : Bukkit.getWorlds()) {
@@ -52,11 +40,9 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
             world.setGameRuleValue("doDaylightCycle", "false");
             world.setDifficulty(Difficulty.NORMAL);
         }
-        
-        getServer().getPluginManager().registerEvents(this, this);
-        getLogger().info("Beat the Santa UHC plugin activé !");
+        getServer().getPluginManager().registerEvents(new ConfigListener(), this);
         getServer().getPluginManager().registerEvents(new VillagerListener(), this);
-        getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        getServer().getPluginManager().registerEvents(new CoffreListener(this), this);
         
         // Scenario
         getServer().getPluginManager().registerEvents(new CutCleanScenario(), this);
@@ -65,126 +51,82 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(new CadeauScenario(this), this);
     }
 
-    @Override
-    public void onDisable() {
-        getLogger().info("Beat the Santa UHC plugin désactivé !");
-    }
-
-    @EventHandler
-    public void onRegen(EntityRegainHealthEvent event) {
-        if(event.getEntity() instanceof Player) {
-            Player p = (Player) event.getEntity();
-            
-            if(event.getRegainReason() == RegainReason.SATIATED || event.getRegainReason() == RegainReason.REGEN) {
-                if(getSanta() != null &&
-                	getSanta().equals(p)) {
-                    return;
-                } else {
-                    event.setCancelled(true);
-                }
-            }
-        }
-    }
-    
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        
-        player.sendMessage(ChatColor.GREEN + "Vous avez rejoint Beat the Santa UHC !");
-        player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
-        
-        // ScoreBoard
-        UHCScoreboard uhcScoreboard = new UHCScoreboard(this, player);
-        uhcScoreboard.createScoreboard(player);
-
-        if(!currentPhase.equals("Playing")) {
-            // Retirer tous les effets de potion
-            for (PotionEffect effect : player.getActivePotionEffects()) {
-                player.removePotionEffect(effect.getType());
-            }
-
-            // Vider l'inventaire du joueur
-            player.getInventory().clear();
-
-            // Rétablir la santé maximale et la saturation
-            player.setMaxHealth(20);
-            player.setHealth(player.getMaxHealth());
-            player.setFoodLevel(20); // Saturation maximale
-            player.setSaturation(20f); // Saturation max
+    public void setSanta(Player target, Player player) {
+        if (target != null) {
+            selectedSanta = target;
+            player.sendMessage(ChatColor.GREEN + "Le Père Noël a été sélectionné !");
         }
     }
 
-    @EventHandler
-    public void onCommand(PlayerCommandPreprocessEvent event) {
-        String[] args = event.getMessage().split(" ");
-        if (args[0].equalsIgnoreCase("/start")) {
-            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+    public void enableMeetup(Player player) {
+        meetupEnabled = !meetupEnabled; // Active ou désactive le mode meetup
+        String status = meetupEnabled ? "activé" : "désactivé";
+        player.sendMessage(ChatColor.YELLOW + "Le mode meetup est maintenant " + status + " !");
+    }
 
-            // Convertir la collection en liste
-            List<Player> playerList = new ArrayList<>(players);
+    public void startGame(Player player) {
+        Collection<? extends Player> players = Bukkit.getOnlinePlayers();
 
-            // Vérifier si la liste des joueurs n'est pas vide
-            if (!playerList.isEmpty()) {
-                Random random = new Random();
-                int randomIndex = random.nextInt(playerList.size() + 1); // Choisit un index aléatoire
-                if (selectedSanta == null) {
-                    santa = playerList.get(randomIndex); // Attribue le rôle de Santa à un joueur aléatoire
-                }
-                else {
-                    santa = selectedSanta;
-                }
-            } else {
-                // Gérer le cas où il n'y a pas de joueurs
-                event.getPlayer().sendMessage(ChatColor.RED + "Aucun joueur disponible pour devenir Santa !");
-                return; // Sortir de la méthode si aucun joueur n'est disponible
+        // Convertir la collection en liste
+        List<Player> playerList = new ArrayList<>(players);
+
+        // Vérifier si la liste des joueurs n'est pas vide
+        if (!playerList.isEmpty()) {
+            Random random = new Random();
+            int randomIndex = random.nextInt(playerList.size() + 1); // Choisit un index aléatoire
+            if (selectedSanta == null) {
+                santa = playerList.get(randomIndex); // Attribue le rôle de Santa à un joueur aléatoire
             }
-
-            currentPhase = "Playing";
-            event.setCancelled(true); // Annule la commande par défaut
-            Bukkit.getWorld("world").setTime(0);
-            new DayCycleScenario(this);
-            dayNumber = 0;
-
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    timepassed++;
-                }
-            }.runTaskTimer(this, 0L, 20L); // 20L = 1 seconde
-
-            // Attribuer les capacités au Père Noël
-            giveSantaAbilities(santa);
-            santa.setPlayerListName(ChatColor.RED + santa.getName() + " Père Noël");
-
-            // Attribuer les effets et le nom dans le tab aux Lutins
-            for (Player player : playerList) {
-                if (!player.equals(santa)) {
-                    teleportPlayerToRandomLocation(player);
-                    new BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            giveElfAbilities(player);
-                            player.setPlayerListName(ChatColor.GREEN + player.getName() + " Lutin");
-                        }
-                    }.runTaskLater(this, 20 * 20);
-                }
-            }
-            // TP le Père Noël à (0, 100, 0)
-            santa.teleport(new Location(santa.getWorld(), -41, 83, 71));
-
-        } else if (args[0].equalsIgnoreCase("/meetup")) {
-            meetupEnabled = !meetupEnabled; // Active ou désactive le mode meetup
-            String status = meetupEnabled ? "activé" : "désactivé";
-            event.getPlayer().sendMessage(ChatColor.YELLOW + "Le mode meetup est maintenant " + status + " !");
-        }
-
-        else if (args.length == 2 && args[0].equals("/setSanta")) {
-            Player target = Bukkit.getPlayer(args[1]);
-            if (target != null) {
-                selectedSanta = target;
-                event.getPlayer().sendMessage(ChatColor.GREEN + "Le Père Noël a été sélectionné !");
+            else {
+                santa = selectedSanta;
             }
         }
+
+        currentPhase = "Playing";
+        Bukkit.getWorld("world").setTime(0);
+        new DayCycleScenario(this);
+        dayNumber = 0;
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                timepassed++;
+            }
+        }.runTaskTimer(this, 0L, 20L); // 20L = 1 seconde
+
+        // Attribuer les capacités au Père Noël
+        clearAll(player);
+        giveSantaAbilities(santa);
+        santa.setPlayerListName(ChatColor.RED + santa.getName() + " Père Noël");
+
+        // Attribuer les effets et le nom dans le tab aux Lutins
+        for (Player p : playerList) {
+            if (!p.equals(santa)) {
+                clearAll(p);
+                teleportPlayerToRandomLocation(p);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        giveElfAbilities(p);
+                        p.setPlayerListName(ChatColor.GREEN + p.getName() + " Lutin");
+                    }
+                }.runTaskLater(this, 20*20);
+            }
+        }
+        santa.teleport(new Location(santa.getWorld(), -41, 83, 71));
+    }
+
+    public static void clearAll(Player player) {
+        player.getInventory().clear();
+        for (PotionEffect potionEffect : player.getActivePotionEffects()) {
+            player.removePotionEffect(potionEffect.getType());
+        }
+        player.setMaxHealth(20);
+        player.setHealth(20);
+        player.setFoodLevel(20);
+        player.setSaturation(20);
+        player.setGameMode(GameMode.SURVIVAL);
+        player.getInventory().setArmorContents(null);
     }
 
     private void teleportPlayerToRandomLocation(Player player) {
@@ -239,69 +181,69 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         }
     }
 
-    private void giveMeetupGear(Player elf) {
+    private void giveMeetupGear(Player player) {
         // Casque en fer P3
         ItemStack ironHelmet = new ItemStack(Material.DIAMOND_HELMET);
         ItemMeta helmetMeta = ironHelmet.getItemMeta();
         helmetMeta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 3, true); // Protection 3
         ironHelmet.setItemMeta(helmetMeta);
-        elf.getInventory().addItem(ironHelmet);
+        player.getInventory().addItem(ironHelmet);
 
         // Plastron en diams P2
         ItemStack diamondChestplate = new ItemStack(Material.DIAMOND_CHESTPLATE);
         ItemMeta chestplateMeta = diamondChestplate.getItemMeta();
         chestplateMeta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 2, true); // Protection 2
         diamondChestplate.setItemMeta(chestplateMeta);
-        elf.getInventory().addItem(diamondChestplate);
+        player.getInventory().addItem(diamondChestplate);
 
         // Pantalon en fer P3
         ItemStack ironLeggings = new ItemStack(Material.DIAMOND_LEGGINGS);
         ItemMeta leggingsMeta = ironLeggings.getItemMeta();
         leggingsMeta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 3, true); // Protection 3
         ironLeggings.setItemMeta(leggingsMeta);
-        elf.getInventory().addItem(ironLeggings);
+        player.getInventory().addItem(ironLeggings);
 
         // Bottes en diams P2
         ItemStack diamondBoots = new ItemStack(Material.DIAMOND_BOOTS);
         ItemMeta bootsMeta = diamondBoots.getItemMeta();
         bootsMeta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 2, true); // Protection 2
         diamondBoots.setItemMeta(bootsMeta);
-        elf.getInventory().addItem(diamondBoots);
+        player.getInventory().addItem(diamondBoots);
 
         // Épée en diams T3
         ItemStack diamondSword = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta swordMeta = diamondSword.getItemMeta();
         swordMeta.addEnchant(Enchantment.DAMAGE_ALL, 3, true); // Tranchant 3
         diamondSword.setItemMeta(swordMeta);
-        elf.getInventory().addItem(diamondSword);
+        player.getInventory().addItem(diamondSword);
 
         // 12 Golden Apples
-        elf.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 12));
+        player.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 12));
 
         // 64 Steak
-        elf.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 64));
+        player.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 64));
 
         // Un seau d'eau
-        elf.getInventory().addItem(new ItemStack(Material.WATER_BUCKET, 1));
+        player.getInventory().addItem(new ItemStack(Material.WATER_BUCKET, 1));
 
         // Pioche en diams Efficacité 3
         ItemStack diamondPickaxe = new ItemStack(Material.DIAMOND_PICKAXE);
         ItemMeta pickaxeMeta = diamondPickaxe.getItemMeta();
         pickaxeMeta.addEnchant(Enchantment.DIG_SPEED, 3, true); // Efficacité 3
         diamondPickaxe.setItemMeta(pickaxeMeta);
-        elf.getInventory().addItem(diamondPickaxe);
+        player.getInventory().addItem(diamondPickaxe);
 
-        elf.getInventory().addItem(new ItemStack(Material.WOOD, 1028));
+        player.getInventory().addItem(new ItemStack(Material.WOOD, 1028));
 
         ItemStack bow = new ItemStack(Material.BOW);
         ItemMeta bowMeta = bow.getItemMeta();
         bowMeta.addEnchant(Enchantment.ARROW_DAMAGE, 3, true);
         bow.setItemMeta(bowMeta);
-        elf.getInventory().addItem(bow);
-        elf.getInventory().addItem(new ItemStack(Material.ARROW, 64));
+        player.getInventory().addItem(bow);
+        player.getInventory().addItem(new ItemStack(Material.ARROW, 64));
     }
 
-    private void giveSantaGear(Player santa) {
+    private void giveSantaGear(Player santa) {;
         // Stuff de départ pour le Père Noël
         santa.getInventory().addItem(new ItemStack(Material.IRON_HELMET)); // Casque en fer
         santa.getInventory().addItem(new ItemStack(Material.DIAMOND_CHESTPLATE)); // Plastron en diamants
@@ -336,30 +278,6 @@ public class BeatTheSantaUHC extends JavaPlugin implements Listener {
         elf.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 64)); // 64 steaks
         elf.getInventory().addItem(new ItemStack(Material.BOOK, 3)); // 3 livres
         elf.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 10)); // 10 pommes rouges
-    }
-    
-    @EventHandler
-    private void OnConsume(PlayerItemConsumeEvent event) {
-        Player player = event.getPlayer();
-        ItemStack item = event.getItem();
-
-        // Vérifier si l'item consommé est une Golden Apple et si le joueur a une santé maximale
-        if (item.getType().equals(Material.GOLDEN_APPLE) && player.getMaxHealth() >= 40) {
-        	if(!getSanta().equals(player)) {
-                event.setCancelled(true); // Annuler la consommation de la Golden Apple
-
-                // Ajouter des effets de potion
-            	player.removePotionEffect(PotionEffectType.ABSORPTION);
-            	player.removePotionEffect(PotionEffectType.REGENERATION);
-                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 2 * 60 * 20, 1)); // 2 minutes d'absorption
-                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 9 * 20, 1)); // 9 secondes de régénération
-                player.setSaturation(player.getSaturation() + 4);
-
-                // Enlever une Golden Apple de l'inventaire du joueur
-                ItemStack goldenApple = new ItemStack(Material.GOLDEN_APPLE, 1);
-                player.getInventory().removeItem(goldenApple); // Enlever une Golden Apple
-        	}
-        }
     }
 
     public int getTimePassed() {

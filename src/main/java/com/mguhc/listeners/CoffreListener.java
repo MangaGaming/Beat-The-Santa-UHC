@@ -11,15 +11,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import com.mguhc.BeatTheSantaUHC;
 
-public class PlayerListener implements Listener {
+public class CoffreListener implements Listener {
 
     private final BeatTheSantaUHC beatTheSantaUHC;
     private final Location chestLocation = new Location(Bukkit.getWorld("world"), 0, 108, -43);
@@ -27,7 +24,7 @@ public class PlayerListener implements Listener {
     private boolean santaChestExists = false;
     private boolean isChestLocked = false;
 
-    public PlayerListener(BeatTheSantaUHC beatTheSantaUHC) {
+    public CoffreListener(BeatTheSantaUHC beatTheSantaUHC) {
         this.beatTheSantaUHC = beatTheSantaUHC;
     }
 
@@ -122,30 +119,5 @@ public class PlayerListener implements Listener {
 
         // Vérifier si le joueur est dans la zone carrée définie par les coins
         return (x >= -1 && x <= 1) && (z >= -44 && z <= -42);
-    }
-
-    @EventHandler
-    private void onJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        if (BeatTheSantaUHC.getInstance().getPhase().equals("Waiting")) {
-            player.setMaxHealth(20);
-            player.setHealth(20);
-            player.setSaturation(20);
-            player.getInventory().clear();
-            for (PotionEffect effect : player.getActivePotionEffects()) {
-                player.removePotionEffect(effect.getType());
-            }
-            player.setGameMode(GameMode.SURVIVAL);
-            player.getInventory().setArmorContents(null);
-            player.getInventory().clear();
-        }
-    }
-
-    @EventHandler
-    private void onRespawn(PlayerRespawnEvent event) {
-        Player player = event.getPlayer();
-        if (beatTheSantaUHC.getPhase().equals("Playing")) {
-            player.setGameMode(GameMode.SPECTATOR);
-        }
     }
 }
